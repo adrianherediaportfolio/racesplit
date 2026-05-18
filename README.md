@@ -1,6 +1,6 @@
-# RaceSplit — Race Performance Analysis
+# RaceSplit — Race Performance Analysis (Mobile App)
 
-Station-by-station performance insights, percentile rankings, and weakness detection for fitness race events.
+Cross-platform mobile app (Android + iOS) for station-by-station performance insights, percentile rankings, and weakness detection for fitness race events.
 
 ## Features
 
@@ -16,7 +16,10 @@ Station-by-station performance insights, percentile rankings, and weakness detec
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 16, React, TypeScript, Tailwind CSS v4, Recharts |
+| Mobile App | React Native (Expo SDK 55), TypeScript |
+| Navigation | React Navigation (native stack + bottom tabs) |
+| Charts | Custom bar charts, percentile visualizations |
+| Storage | AsyncStorage for auth tokens |
 | Backend | Python 3.11+, FastAPI, SQLAlchemy, Pydantic v2 |
 | Scraper | BeautifulSoup4, httpx, lxml |
 | Database | PostgreSQL 16 |
@@ -28,6 +31,15 @@ Station-by-station performance insights, percentile rankings, and weakness detec
 
 ```
 racesplit/
+├── mobile/                 # React Native Expo app
+│   ├── App.tsx            # Root navigation setup
+│   ├── src/
+│   │   ├── screens/       # SearchScreen, ResultsScreen, LoginScreen, RegisterScreen, DashboardScreen
+│   │   ├── components/    # PercentileBar, WeaknessCard, ComparisonChart, RunVsStationCard
+│   │   ├── lib/           # API client, theme constants
+│   │   └── navigation/    # TypeScript types for navigation
+│   ├── app.json           # Expo configuration
+│   └── package.json
 ├── backend/
 │   ├── src/
 │   │   ├── api/           # FastAPI route handlers
@@ -35,14 +47,8 @@ racesplit/
 │   │   ├── services/      # Analysis engine (percentiles, weakness detection)
 │   │   ├── config.py      # Settings (env vars)
 │   │   ├── database.py    # SQLAlchemy models
-│   │   ├── models.py      # Pydantic schemas
 │   │   └── main.py        # FastAPI app entry point
 │   └── tests/             # pytest test suite
-├── frontend/
-│   └── src/
-│       ├── app/           # Next.js app router pages
-│       ├── components/    # React components (charts, percentile bars)
-│       └── lib/           # API client
 ├── docker-compose.yml
 └── .github/workflows/ci.yml
 ```
@@ -51,37 +57,45 @@ racesplit/
 
 ### Prerequisites
 
-- Python 3.11+
 - Node.js 22+
+- Python 3.11+
 - PostgreSQL 16 (or use Docker)
+- Expo Go app on your phone (for development)
 
-### Using Docker (recommended)
+### Backend Setup
 
 ```bash
+# Start database + backend with Docker
 docker-compose up --build
-```
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API docs: http://localhost:8000/docs
-
-### Manual Setup
-
-**Backend:**
-
-```bash
+# Or manually:
 cd backend
 cp .env.example .env
 pip install -e ".[dev]"
 uvicorn src.main:app --reload --port 8000
 ```
 
-**Frontend:**
+### Mobile App Setup
 
 ```bash
-cd frontend
+cd mobile
 npm install
-npm run dev
+npx expo start
+```
+
+Scan the QR code with Expo Go (Android) or Camera app (iOS) to run on your phone.
+
+### Building for Production
+
+```bash
+# Android APK
+npx expo build:android
+
+# iOS (requires Apple Developer account)
+npx expo build:ios
+
+# Or use EAS Build (recommended)
+npx eas build --platform all
 ```
 
 ## API Endpoints
@@ -108,40 +122,27 @@ npm run dev
 2. **Scrape**: The backend fetches the athlete's detailed splits from the results page
 3. **Category Dataset**: If first time for this category, scrapes all athletes in the same gender + age group
 4. **Analysis**: Calculates percentiles, detects weaknesses, generates comparison data
-5. **Visualize**: Frontend renders percentile bars, comparison charts, and weakness cards
+5. **Visualize**: Mobile app renders percentile bars, comparison charts, and weakness cards
 
 ### Percentile Calculation
 
 ```
-percentile = (count_of_slower_athletes_in_category / total_in_category) × 100
+percentile = (count_of_slower_athletes_in_category / total_in_category) * 100
 ```
 
 A percentile of 85 means "faster than 85% of athletes in your category" (top 15%).
 
-### Weakness Detection
-
-Ranks stations by gap between athlete time and category median. Top 3 stations with the largest positive gap (slower than median) are flagged as weaknesses.
-
 ## Testing
 
 ```bash
+# Backend tests
 cd backend
 pytest -v
+
+# Mobile type check
+cd mobile
+npx tsc --noEmit
 ```
-
-20 tests covering:
-- Time parsing and conversion (12 tests)
-- Percentile calculation logic (8 tests)
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | `postgresql://racesplit:racesplit@localhost:5432/racesplit` | PostgreSQL connection |
-| `SECRET_KEY` | dev default | JWT signing key |
-| `STRIPE_SECRET_KEY` | empty | Stripe API key |
-| `STRIPE_WEBHOOK_SECRET` | empty | Stripe webhook secret |
-| `STRIPE_PRICE_ID` | empty | Stripe price ID for paid tier |
 
 ## License
 
