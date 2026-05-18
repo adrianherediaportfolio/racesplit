@@ -1,6 +1,6 @@
-# RaceSplit — Análisis de Rendimiento en Carreras
+# RaceSplit — Análisis de Rendimiento en Carreras (App Móvil)
 
-Análisis estación por estación, rankings por percentiles y detección de debilidades para eventos de carreras de fitness.
+App móvil multiplataforma (Android + iOS) para análisis estación por estación, rankings por percentiles y detección de debilidades en carreras de fitness.
 
 ## Características
 
@@ -16,7 +16,10 @@ Análisis estación por estación, rankings por percentiles y detección de debi
 
 | Capa | Tecnología |
 |------|-----------|
-| Frontend | Next.js 16, React, TypeScript, Tailwind CSS v4, Recharts |
+| App Móvil | React Native (Expo SDK 55), TypeScript |
+| Navegación | React Navigation (native stack + bottom tabs) |
+| Gráficos | Gráficos de barras custom, visualizaciones de percentiles |
+| Almacenamiento | AsyncStorage para tokens de auth |
 | Backend | Python 3.11+, FastAPI, SQLAlchemy, Pydantic v2 |
 | Scraper | BeautifulSoup4, httpx, lxml |
 | Base de Datos | PostgreSQL 16 |
@@ -28,37 +31,45 @@ Análisis estación por estación, rankings por percentiles y detección de debi
 
 ### Prerrequisitos
 
-- Python 3.11+
 - Node.js 22+
+- Python 3.11+
 - PostgreSQL 16 (o usa Docker)
+- App Expo Go en tu teléfono (para desarrollo)
 
-### Usando Docker (recomendado)
+### Configuración del Backend
 
 ```bash
+# Iniciar base de datos + backend con Docker
 docker-compose up --build
-```
 
-- Frontend: http://localhost:3000
-- API Backend: http://localhost:8000
-- Documentación API: http://localhost:8000/docs
-
-### Configuración Manual
-
-**Backend:**
-
-```bash
+# O manualmente:
 cd backend
 cp .env.example .env
 pip install -e ".[dev]"
 uvicorn src.main:app --reload --port 8000
 ```
 
-**Frontend:**
+### Configuración de la App Móvil
 
 ```bash
-cd frontend
+cd mobile
 npm install
-npm run dev
+npx expo start
+```
+
+Escanea el código QR con Expo Go (Android) o la app de Cámara (iOS) para ejecutar en tu teléfono.
+
+### Compilar para Producción
+
+```bash
+# APK de Android
+npx expo build:android
+
+# iOS (requiere cuenta de Apple Developer)
+npx expo build:ios
+
+# O usar EAS Build (recomendado)
+npx eas build --platform all
 ```
 
 ## Cómo Funciona
@@ -67,7 +78,7 @@ npm run dev
 2. **Scrapear**: El backend obtiene los splits detallados de la página de resultados
 3. **Dataset de Categoría**: Si es la primera vez para esta categoría, scrapea todos los atletas del mismo género + grupo de edad
 4. **Análisis**: Calcula percentiles, detecta debilidades, genera datos de comparación
-5. **Visualizar**: El frontend renderiza barras de percentiles, gráficos comparativos y tarjetas de debilidades
+5. **Visualizar**: La app renderiza barras de percentiles, gráficos comparativos y tarjetas de debilidades
 
 ### Cálculo de Percentiles
 
@@ -77,20 +88,17 @@ percentil = (atletas_más_lentos_en_categoría / total_en_categoría) × 100
 
 Un percentil de 85 significa "más rápido que el 85% de los atletas de tu categoría" (top 15%).
 
-### Detección de Debilidades
-
-Ordena las estaciones por la diferencia entre el tiempo del atleta y la mediana de la categoría. Las 3 estaciones con mayor diferencia positiva (más lento que la mediana) se marcan como debilidades.
-
 ## Testing
 
 ```bash
+# Tests del backend
 cd backend
 pytest -v
-```
 
-20 tests cubriendo:
-- Parseo y conversión de tiempos (12 tests)
-- Lógica de cálculo de percentiles (8 tests)
+# Type check de la app
+cd mobile
+npx tsc --noEmit
+```
 
 ## Licencia
 
