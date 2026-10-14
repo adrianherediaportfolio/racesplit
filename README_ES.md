@@ -102,4 +102,9 @@ npx tsc --noEmit
 
 ## Licencia
 
-MIT
+Copyright (c) 2026 Adrian Heredia Jimenez. Todos los derechos reservados.
+
+Software propietario. El código es público para que puedas verlo, pero no puedes usarlo, copiarlo, modificarlo ni distribuirlo sin mi permiso por escrito. Consulta [LICENSE](LICENSE).
+
+¿Quieres usarlo o comprar una licencia? Escríbeme a adrian.heredia.jimenez@gmail.com.
+
