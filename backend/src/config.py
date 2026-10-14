@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     version: str = "1.0.0"
     debug: bool = False
 
-    database_url: str = "postgresql://racesplit:racesplit@localhost:5432/racesplit"
+    database_url: str = "postgresql+psycopg://racesplit:racesplit@localhost:5432/racesplit"
 
     secret_key: str = "change-me-in-production-use-a-random-32-byte-hex"
     algorithm: str = "HS256"
@@ -26,9 +26,7 @@ class Settings(BaseSettings):
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
 settings = Settings()

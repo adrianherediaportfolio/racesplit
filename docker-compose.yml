@@ -22,7 +22,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://racesplit:racesplit@db:5432/racesplit
+      DATABASE_URL: postgresql+psycopg://racesplit:racesplit@db:5432/racesplit
       SECRET_KEY: dev-secret-key-change-in-production
     depends_on:
       db:
