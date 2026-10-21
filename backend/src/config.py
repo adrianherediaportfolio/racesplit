@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     stripe_price_id: str = ""
+    public_base_url: str = "http://localhost:8000"
 
     free_tier_max_analyses: int = 1
 

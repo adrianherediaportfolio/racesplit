@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { colors, fontSize, spacing } from "../lib/theme";
-import { searchAthletes, analyzeAthlete } from "../lib/api";
+import { searchAthletes, analyzeAthlete, ApiError } from "../lib/api";
 import type { SearchResult, AnalysisResult } from "../lib/api";
 import type { RootStackParamList } from "../navigation/types";
 
@@ -47,7 +47,7 @@ export default function SearchScreen({ navigation }: Props) {
         Alert.alert("No Results", "No athletes found with that name.");
       }
     } catch (err) {
-      Alert.alert("Error", String(err));
+      Alert.alert("Error", err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,28 @@ export default function SearchScreen({ navigation }: Props) {
       );
       navigation.navigate("Results", { analysis });
     } catch (err) {
-      Alert.alert("Error", String(err));
+      if (
+        err instanceof ApiError &&
+        (err.status === 402 || err.status === 403) &&
+        err.message.includes("Free tier limit reached")
+      ) {
+        Alert.alert(
+          "Free plan limit reached",
+          "Upgrade your plan to analyze more races.",
+          [
+            { text: "Not now", style: "cancel" },
+            {
+              text: "Upgrade",
+              onPress: () => navigation.navigate("Dashboard"),
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Error",
+          err instanceof Error ? err.message : String(err)
+        );
+      }
     } finally {
       setAnalyzing(null);
     }

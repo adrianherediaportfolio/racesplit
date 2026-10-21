@@ -1,6 +1,21 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
-const API_URL = "http://10.0.2.2:8000";
+const API_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  (Platform.OS === "android"
+    ? "http://10.0.2.2:8000"
+    : "http://localhost:8000");
+
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
 
 async function getToken(): Promise<string | null> {
   return AsyncStorage.getItem("racesplit_token");
@@ -21,7 +36,12 @@ async function apiFetch<T>(
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(body || `HTTP ${res.status}`);
+    let message = body || `HTTP ${res.status}`;
+    try {
+      const parsed = JSON.parse(body);
+      if (typeof parsed.detail === "string") message = parsed.detail;
+    } catch {}
+    throw new ApiError(res.status, message);
   }
   return res.json() as Promise<T>;
 }
@@ -151,6 +171,13 @@ export function getMe(): Promise<{
   analyses_count: number;
 }> {
   return apiFetch("/api/auth/me");
+}
+
+export function createCheckout(): Promise<{ checkout_url: string }> {
+  return apiFetch("/api/stripe/checkout", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
 }
 
 export interface SavedRace {

@@ -124,8 +124,8 @@ class SavedRaceResponse(BaseModel):
 
 # --- Stripe ---
 class CheckoutRequest(BaseModel):
-    success_url: str
-    cancel_url: str
+    success_url: str | None = None
+    cancel_url: str | None = None
 
 
 class CheckoutResponse(BaseModel):

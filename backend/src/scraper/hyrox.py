@@ -240,11 +240,11 @@ class HyroxScraper:
         soup = self._get(f"{self.base_url}?{urlencode(params)}")
         athletes = []
 
-        results_list = soup.find("section")
+        results_list = soup.select_one("section.section-main") or soup.find("section")
         if not results_list:
             return [], 0
 
-        rows = results_list.find("ul")
+        rows = results_list.select_one("ul.list-group-multicolumn") or results_list.find("ul")
         if not rows:
             return [], 0
 
@@ -371,18 +371,20 @@ class HyroxScraper:
             for row in participant_table.find_all("tr"):
                 th = row.find("th")
                 td = row.find("td")
-                if not th or not td:
+                if not td:
                     continue
-                label = th.text.strip()
-                value = td.text.strip()
-                if label == "Name":
+                label = th.text.strip() if th else ""
+                value = td.get_text(strip=True)
+                if label in {"Name", "Athlete"}:
                     splits.name = value
                 elif label == "Bib Number":
                     splits.bib_number = value
                 elif label == "Age Group":
                     splits.age_group = value
-                elif label == "Nat":
-                    splits.nationality = value.strip()
+                elif label in {"Nat", "Nationality"}:
+                    splits.nationality = value
+                elif not label and re.fullmatch(r"[A-Z]{3}", value):
+                    splits.nationality = value
 
         # Race details
         for h3 in soup.find_all("h3"):

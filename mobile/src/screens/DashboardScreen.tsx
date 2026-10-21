@@ -11,8 +11,15 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import * as WebBrowser from "expo-web-browser";
 import { colors, fontSize, spacing } from "../lib/theme";
-import { getMe, getSavedRaces, deleteSavedRace } from "../lib/api";
+import {
+  createCheckout,
+  getMe,
+  getSavedRaces,
+  deleteSavedRace,
+  ApiError,
+} from "../lib/api";
 import type { SavedRace } from "../lib/api";
 import type { RootStackParamList } from "../navigation/types";
 
@@ -26,6 +33,7 @@ export default function DashboardScreen({ navigation }: Props) {
   const [analysesCount, setAnalysesCount] = useState(0);
   const [savedRaces, setSavedRaces] = useState<SavedRace[]>([]);
   const [loading, setLoading] = useState(true);
+  const [upgrading, setUpgrading] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -72,6 +80,38 @@ export default function DashboardScreen({ navigation }: Props) {
     ]);
   };
 
+  const handleUpgrade = async () => {
+    setUpgrading(true);
+    try {
+      const { checkout_url } = await createCheckout();
+      await WebBrowser.openAuthSessionAsync(
+        checkout_url,
+        "racesplit://upgrade"
+      );
+      const me = await getMe();
+      setPlan(me.plan);
+      setAnalysesCount(me.analyses_count);
+    } catch (err) {
+      if (
+        err instanceof ApiError &&
+        err.status === 503 &&
+        err.message === "Stripe not configured"
+      ) {
+        Alert.alert(
+          "Payments unavailable",
+          "Upgrades are not configured yet. Please try again later."
+        );
+      } else {
+        Alert.alert(
+          "Upgrade failed",
+          err instanceof Error ? err.message : "Please try again later."
+        );
+      }
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
   const handleLogout = async () => {
     await AsyncStorage.removeItem("racesplit_token");
     navigation.reset({ index: 0, routes: [{ name: "Main" }] });
@@ -99,6 +139,19 @@ export default function DashboardScreen({ navigation }: Props) {
             <Text style={styles.statLabel}>Analyses</Text>
           </View>
         </View>
+        {plan === "free" && (
+          <TouchableOpacity
+            style={styles.upgradeBtn}
+            onPress={handleUpgrade}
+            disabled={upgrading}
+          >
+            {upgrading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text style={styles.upgradeText}>Upgrade</Text>
+            )}
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
@@ -189,6 +242,18 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: "center",
+  },
+  upgradeBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  upgradeText: {
+    color: "#000",
+    fontSize: fontSize.sm,
+    fontWeight: "700",
   },
   logoutText: {
     color: colors.foreground,

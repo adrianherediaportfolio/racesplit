@@ -10,7 +10,7 @@ App móvil multiplataforma (Android + iOS) para análisis estación por estació
 - **Gráficos Comparativos** — Gráficos de barras comparando tus tiempos vs mediana de categoría vs top 10%
 - **Desglose Running vs Fuerza** — Agrega tiempos de running vs estaciones para identificar el balance cardio vs fuerza
 - **Cuentas de Usuario** — Autenticación por email + contraseña con historial de carreras guardadas
-- **Modelo Freemium** — Tier gratuito (1 análisis) + tier de pago (ilimitado, integración Stripe preparada)
+- **Modelo Freemium** — Tier gratuito (1 análisis) y tier de pago (ilimitado) con suscripciones de Stripe
 
 ## Stack Tecnológico
 
@@ -24,7 +24,7 @@ App móvil multiplataforma (Android + iOS) para análisis estación por estació
 | Scraper | BeautifulSoup4, httpx, lxml |
 | Base de Datos | PostgreSQL 16 |
 | Auth | JWT (PyJWT), bcrypt |
-| Pagos | Stripe (scaffold) |
+| Pagos | Stripe Checkout y webhooks de suscripción |
 | DevOps | Docker, docker-compose, GitHub Actions CI |
 
 ## Inicio Rápido
@@ -53,11 +53,33 @@ uvicorn src.main:app --reload --port 8000
 
 ```bash
 cd mobile
+cp .env.example .env
 npm install
 npx expo start
 ```
 
 Escanea el código QR con Expo Go (Android) o la app de Cámara (iOS) para ejecutar en tu teléfono.
+
+El emulador de Android usa `http://10.0.2.2:8000` por defecto y las demás plataformas usan `http://localhost:8000`. Un teléfono físico no puede usar el `localhost` del ordenador. Define `EXPO_PUBLIC_API_URL` en `mobile/.env` con la IP LAN del ordenador, por ejemplo `http://192.168.1.25:8000`, y conecta ambos dispositivos a la misma red.
+
+## Configuración de Stripe
+
+Define estos valores en `backend/.env`:
+
+```dotenv
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID=price_...
+PUBLIC_BASE_URL=http://localhost:8000
+```
+
+Crea un precio recurrente en Stripe y usa su ID en `STRIPE_PRICE_ID`. Activa los eventos `checkout.session.completed`, `customer.subscription.deleted` y `customer.subscription.updated` para el endpoint `/api/stripe/webhook`. Para probar localmente, reenvía los eventos de Stripe con:
+
+```bash
+stripe listen --forward-to localhost:8000/api/stripe/webhook
+```
+
+Copia el secreto de firma que muestra Stripe CLI en `STRIPE_WEBHOOK_SECRET`. En despliegues, configura `PUBLIC_BASE_URL` con una dirección accesible para el navegador del checkout. Los webhooks de Stripe actualizan el acceso a la suscripción; la redirección de éxito no lo hace.
 
 ### Compilar para Producción
 

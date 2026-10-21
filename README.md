@@ -10,7 +10,7 @@ Cross-platform mobile app (Android + iOS) for station-by-station performance ins
 - **Comparison Charts** — Visual bar charts comparing your splits vs category median vs top 10%
 - **Running vs Strength Breakdown** — Aggregate running splits vs station splits to identify cardio vs strength balance
 - **User Accounts** — Email + password auth with saved race history
-- **Freemium Model** — Free tier (1 analysis) + paid tier (unlimited, Stripe integration scaffold)
+- **Freemium Model** — Free tier (1 analysis) and paid tier (unlimited) with Stripe subscriptions
 
 ## Tech Stack
 
@@ -24,7 +24,7 @@ Cross-platform mobile app (Android + iOS) for station-by-station performance ins
 | Scraper | BeautifulSoup4, httpx, lxml |
 | Database | PostgreSQL 16 |
 | Auth | JWT (PyJWT), bcrypt |
-| Payments | Stripe (scaffold) |
+| Payments | Stripe Checkout and subscription webhooks |
 | DevOps | Docker, docker-compose, GitHub Actions CI |
 
 ## Project Structure
@@ -79,11 +79,14 @@ uvicorn src.main:app --reload --port 8000
 
 ```bash
 cd mobile
+cp .env.example .env
 npm install
 npx expo start
 ```
 
 Scan the QR code with Expo Go (Android) or Camera app (iOS) to run on your phone.
+
+The Android emulator defaults to `http://10.0.2.2:8000`, and other platforms default to `http://localhost:8000`. A physical phone cannot use the computer's `localhost`; set `EXPO_PUBLIC_API_URL` in `mobile/.env` to the computer's LAN IP, for example `http://192.168.1.25:8000`, and connect both devices to the same network.
 
 ### Building for Production
 
@@ -109,6 +112,25 @@ npx eas build --platform all
 | DELETE | `/api/saved-races/{id}` | Remove saved analysis |
 | POST | `/api/stripe/checkout` | Create Stripe checkout session |
 | POST | `/api/stripe/webhook` | Stripe webhook handler |
+
+## Stripe Setup
+
+Set these values in `backend/.env`:
+
+```dotenv
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID=price_...
+PUBLIC_BASE_URL=http://localhost:8000
+```
+
+Create a recurring price in Stripe and use its ID for `STRIPE_PRICE_ID`. Enable `checkout.session.completed`, `customer.subscription.deleted`, and `customer.subscription.updated` for the webhook endpoint `/api/stripe/webhook`. For local testing, forward Stripe events with:
+
+```bash
+stripe listen --forward-to localhost:8000/api/stripe/webhook
+```
+
+Copy the signing secret printed by the Stripe CLI to `STRIPE_WEBHOOK_SECRET`. Set `PUBLIC_BASE_URL` to an address reachable by the checkout browser in deployed environments. Stripe webhooks, not the success redirect, update subscription access.
 
 ## How It Works
 
