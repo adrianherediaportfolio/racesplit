@@ -23,7 +23,7 @@ App móvil multiplataforma (Android + iOS) para análisis estación por estació
 | Backend | Python 3.11+, FastAPI, SQLAlchemy, Pydantic v2 |
 | Scraper | BeautifulSoup4, httpx, lxml |
 | Base de Datos | PostgreSQL 16 |
-| Auth | JWT (python-jose), bcrypt |
+| Auth | JWT (PyJWT), bcrypt |
 | Pagos | Stripe (scaffold) |
 | DevOps | Docker, docker-compose, GitHub Actions CI |
 
@@ -62,13 +62,7 @@ Escanea el código QR con Expo Go (Android) o la app de Cámara (iOS) para ejecu
 ### Compilar para Producción
 
 ```bash
-# APK de Android
-npx expo build:android
-
-# iOS (requiere cuenta de Apple Developer)
-npx expo build:ios
-
-# O usar EAS Build (recomendado)
+# Android e iOS
 npx eas build --platform all
 ```
 
@@ -107,4 +101,3 @@ Copyright (c) 2026 Adrian Heredia Jimenez. Todos los derechos reservados.
 Software propietario. El código es público para que puedas verlo, pero no puedes usarlo, copiarlo, modificarlo ni distribuirlo sin mi permiso por escrito. Consulta [LICENSE](LICENSE).
 
 ¿Quieres usarlo o comprar una licencia? Escríbeme a adrian.heredia.jimenez@gmail.com.
-

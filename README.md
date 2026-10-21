@@ -23,7 +23,7 @@ Cross-platform mobile app (Android + iOS) for station-by-station performance ins
 | Backend | Python 3.11+, FastAPI, SQLAlchemy, Pydantic v2 |
 | Scraper | BeautifulSoup4, httpx, lxml |
 | Database | PostgreSQL 16 |
-| Auth | JWT (python-jose), bcrypt |
+| Auth | JWT (PyJWT), bcrypt |
 | Payments | Stripe (scaffold) |
 | DevOps | Docker, docker-compose, GitHub Actions CI |
 
@@ -88,13 +88,7 @@ Scan the QR code with Expo Go (Android) or Camera app (iOS) to run on your phone
 ### Building for Production
 
 ```bash
-# Android APK
-npx expo build:android
-
-# iOS (requires Apple Developer account)
-npx expo build:ios
-
-# Or use EAS Build (recommended)
+# Android and iOS
 npx eas build --platform all
 ```
 
@@ -151,4 +145,3 @@ Copyright (c) 2026 Adrian Heredia Jimenez. All rights reserved.
 This is proprietary software. The code is public so you can see it, but you can't use, copy, modify or distribute it without my written permission. See [LICENSE](LICENSE).
 
 Want to use it or buy a license? Write to adrian.heredia.jimenez@gmail.com.
-
