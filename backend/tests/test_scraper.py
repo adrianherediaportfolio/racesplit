@@ -1,6 +1,16 @@
 """Tests for the scraper module — parsing logic only (no live HTTP)."""
 
-from src.scraper.hyrox import parse_time_to_seconds, seconds_to_time_str
+from pathlib import Path
+
+from bs4 import BeautifulSoup
+
+from src.scraper.hyrox import (
+    HyroxScraper,
+    parse_time_to_seconds,
+    seconds_to_time_str,
+)
+
+FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
 
 class TestTimeConversion:
@@ -45,3 +55,44 @@ class TestTimeConversion:
         seconds = parse_time_to_seconds(original)
         result = seconds_to_time_str(seconds)
         assert result == original
+
+
+def test_scrapes_current_results_markup(monkeypatch):
+    soup = BeautifulSoup(
+        (FIXTURE_DIR / "hyrox_results_list.html").read_text(),
+        "lxml",
+    )
+    scraper = HyroxScraper()
+    monkeypatch.setattr(scraper, "_get", lambda _: soup)
+
+    entries, pages = scraper.scrape_list_page("HPRO_ARN25_OVERALL")
+    matches = scraper.search_athlete("HPRO_ARN25_OVERALL", last_name="Weindl")
+
+    assert pages == 14
+    assert len(entries) == 1
+    assert entries[0].name == "Weindl, Paul (GER)"
+    assert entries[0].age_group == "25-29"
+    assert entries[0].total_time_seconds == 3303
+    assert entries[0].overall_rank == 1
+    assert len(matches) == 1
+    assert matches[0].name == "Weindl, Paul (GER)"
+
+    scraper.client.close()
+
+
+def test_scrapes_current_participant_markup(monkeypatch):
+    soup = BeautifulSoup(
+        (FIXTURE_DIR / "hyrox_participant.html").read_text(),
+        "lxml",
+    )
+    scraper = HyroxScraper()
+    monkeypatch.setattr(scraper, "_get", lambda _: soup)
+
+    detail = scraper.scrape_athlete_detail("https://example.com/detail")
+
+    assert detail.name == "Weindl, Paul (GER)"
+    assert detail.bib_number == "170039"
+    assert detail.age_group == "25-29"
+    assert detail.nationality == "GER"
+
+    scraper.client.close()

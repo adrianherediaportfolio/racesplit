@@ -1,14 +1,15 @@
-"""Stripe payment integration scaffold."""
+"""Stripe payment integration."""
 
 import logging
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
 from src.api.auth import get_current_user
 from src.config import settings
-from src.database import get_db
+from src.database import User, get_db
 from src.models import CheckoutRequest, CheckoutResponse
 
 logger = logging.getLogger(__name__)
@@ -39,8 +40,10 @@ def create_checkout_session(
                 }
             ],
             mode="subscription",
-            success_url=data.success_url,
-            cancel_url=data.cancel_url,
+            success_url=data.success_url
+            or f"{settings.public_base_url.rstrip('/')}/api/stripe/success",
+            cancel_url=data.cancel_url
+            or f"{settings.public_base_url.rstrip('/')}/api/stripe/cancel",
             customer_email=user.email,
             metadata={"user_id": str(user.id)},
         )
@@ -67,13 +70,58 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         session = event["data"]["object"]
         user_id = session.get("metadata", {}).get("user_id")
         if user_id:
-            from src.database import User
-
             user = db.query(User).filter(User.id == int(user_id)).first()
             if user:
                 user.is_paid = True
                 user.stripe_customer_id = session.get("customer")
                 db.commit()
                 logger.info("User %s upgraded to paid plan", user.email)
+    elif event["type"] in {
+        "customer.subscription.deleted",
+        "customer.subscription.updated",
+    }:
+        subscription = event["data"]["object"]
+        customer = subscription.get("customer")
+        if isinstance(customer, dict):
+            customer = customer.get("id")
+        if customer:
+            user = db.query(User).filter(User.stripe_customer_id == customer).first()
+            if user:
+                user.is_paid = event[
+                    "type"
+                ] == "customer.subscription.updated" and subscription.get("status") in {
+                    "active",
+                    "trialing",
+                }
+                db.commit()
 
     return {"status": "ok"}
+
+
+def _redirect_page(status: str, title: str) -> HTMLResponse:
+    deep_link = f"racesplit://upgrade?status={status}"
+    html = f"""<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="0;url={deep_link}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{title}</title>
+  </head>
+  <body>
+    <p>{title}. If the app does not open, use the link below.</p>
+    <p><a href="{deep_link}">Return to RaceSplit</a></p>
+    <script>window.location.replace("{deep_link}");</script>
+  </body>
+</html>"""
+    return HTMLResponse(html)
+
+
+@router.get("/success", response_class=HTMLResponse)
+def checkout_success():
+    return _redirect_page("success", "Payment complete")
+
+
+@router.get("/cancel", response_class=HTMLResponse)
+def checkout_cancel():
+    return _redirect_page("cancel", "Payment cancelled")
